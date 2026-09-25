@@ -2,7 +2,7 @@ import { Column, Entity, JoinColumn, ManyToOne } from 'typeorm';
 import { Category } from '../../categories/entities/category.entity';
 import { BaseEntity } from '../../common/entities/base.entity';
 
-@Entity('products')
+@Entity('api_products')
 export class Product extends BaseEntity {
   @Column({ length: 160 })
   name: string;

@@ -34,3 +34,6 @@ Set it to `false` and use TypeORM migrations in production. Change `JWT_SECRET`
 before deploying.
 
 Uploaded files are stored in `uploads/` and served from `/uploads/<filename>`.
+
+Database tables use the `api_` prefix so they do not collide with existing
+tables in a shared database.

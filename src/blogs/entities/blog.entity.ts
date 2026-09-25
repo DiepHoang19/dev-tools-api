@@ -3,7 +3,7 @@ import { Category } from '../../categories/entities/category.entity';
 import { BaseEntity } from '../../common/entities/base.entity';
 import { User } from '../../users/entities/user.entity';
 
-@Entity('blogs')
+@Entity('api_blogs')
 export class Blog extends BaseEntity {
   @Column({ length: 200 })
   title: string;

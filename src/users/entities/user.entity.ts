@@ -8,7 +8,7 @@ export enum UserRole {
   USER = 'user',
 }
 
-@Entity('users')
+@Entity('api_users')
 export class User extends BaseEntity {
   @Column({ length: 100 })
   name: string;

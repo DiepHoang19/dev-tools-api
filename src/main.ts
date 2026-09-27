@@ -20,8 +20,12 @@ async function bootstrap() {
     }),
   );
 
-  const uploadDir = config.get<string>('UPLOAD_DIR', 'uploads');
-  app.useStaticAssets(join(process.cwd(), uploadDir), { prefix: '/uploads/' });
+  if (!process.env.VERCEL) {
+    const uploadDir = config.get<string>('UPLOAD_DIR', 'uploads');
+    app.useStaticAssets(join(process.cwd(), uploadDir), {
+      prefix: '/uploads/',
+    });
+  }
 
   const swaggerConfig = new DocumentBuilder()
     .setTitle('NestJS CRUD API')

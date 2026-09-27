@@ -37,3 +37,27 @@ Uploaded files are stored in `uploads/` and served from `/uploads/<filename>`.
 
 Database tables use the `api_` prefix so they do not collide with existing
 tables in a shared database.
+
+## Deploy to Vercel
+
+Vercel detects this project as NestJS and deploys it as one Vercel Function.
+The deployment configuration is in `vercel.json`.
+
+1. Push the repository to GitHub.
+2. Import the repository at <https://vercel.com/new>.
+3. Keep the detected **NestJS** framework preset. Do not set a custom output
+   directory or override the build command.
+4. Add these environment variables for Production, Preview and Development:
+
+   - `DATABASE_URL`: use the pooled PostgreSQL connection string when the
+     provider offers one (for example, Neon pooled connection).
+   - `JWT_SECRET`: a long random secret.
+   - `DB_SYNCHRONIZE=false`
+   - `JWT_EXPIRES_IN=1d` (optional)
+
+5. Deploy, then verify `/api/health` and `/docs` on the generated domain.
+
+The local-disk upload module is intentionally disabled when `VERCEL=1` because
+files written by a Vercel Function are not persistent. Other API modules remain
+available. Migrate uploads to Vercel Blob or another object store before
+enabling upload routes on Vercel.

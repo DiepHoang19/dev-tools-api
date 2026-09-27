@@ -9,6 +9,11 @@ import { ProductsModule } from './products/products.module';
 import { UploadsModule } from './uploads/uploads.module';
 import { UsersModule } from './users/users.module';
 
+// Vercel Functions do not provide persistent local file storage. Keep the
+// existing upload module for local development and enable it on Vercel after
+// migrating the implementation to object storage such as Vercel Blob.
+const platformModules = process.env.VERCEL ? [] : [UploadsModule];
+
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -27,7 +32,7 @@ import { UsersModule } from './users/users.module';
     CategoriesModule,
     ProductsModule,
     BlogsModule,
-    UploadsModule,
+    ...platformModules,
   ],
   controllers: [AppController],
 })

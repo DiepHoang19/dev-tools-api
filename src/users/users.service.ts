@@ -6,6 +6,11 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
 import { Repository } from 'typeorm';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
+import {
+  paginate,
+  PaginatedResponse,
+} from '../common/utils/pagination.util';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { User } from './entities/user.entity';
@@ -31,8 +36,13 @@ export class UsersService {
     return saved;
   }
 
-  findAll(): Promise<User[]> {
-    return this.users.find({ order: { createdAt: 'DESC' } });
+  findAll(query: PaginationQueryDto): Promise<PaginatedResponse<User>> {
+    return paginate(
+      this.users,
+      query,
+      { order: { createdAt: 'DESC' } },
+      'Users retrieved successfully',
+    );
   }
 
   async findOne(id: string): Promise<User> {
@@ -54,6 +64,30 @@ export class UsersService {
         'updatedAt',
       ],
     });
+  }
+
+  findByIdWithRefreshToken(id: string): Promise<User | null> {
+    return this.users.findOne({
+      where: { id },
+      select: [
+        'id',
+        'name',
+        'email',
+        'role',
+        'refreshTokenHash',
+        'createdAt',
+        'updatedAt',
+      ],
+    });
+  }
+
+  async setRefreshTokenHash(id: string, hash: string): Promise<void> {
+    const result = await this.users.update(id, { refreshTokenHash: hash });
+    if (!result.affected) throw new NotFoundException('User not found');
+  }
+
+  async clearRefreshToken(id: string): Promise<void> {
+    await this.users.update(id, { refreshTokenHash: null });
   }
 
   async update(id: string, dto: UpdateUserDto): Promise<User> {

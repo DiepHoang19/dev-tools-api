@@ -10,17 +10,33 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Query,
   UploadedFile,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
+import { diskStorage, memoryStorage } from 'multer';
 import { extname } from 'node:path';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { UpdateUploadDto } from './dto/update-upload.dto';
 import { UploadsService } from './uploads.service';
+
+// Vercel Functions have a read-only application filesystem. This controller
+// is still evaluated because UploadsModule is statically imported, even when
+// the module is not registered on Vercel, so diskStorage must not be created
+// there during application bootstrap.
+const uploadStorage = process.env.VERCEL
+  ? memoryStorage()
+  : diskStorage({
+      destination: process.env.UPLOAD_DIR || 'uploads',
+      filename: (_request, file, callback) => {
+        const safeExtension = extname(file.originalname).toLowerCase();
+        callback(null, `${crypto.randomUUID()}${safeExtension}`);
+      },
+    });
 
 @ApiTags('uploads')
 @ApiBearerAuth()
@@ -40,13 +56,7 @@ export class UploadsController {
   })
   @UseInterceptors(
     FileInterceptor('file', {
-      storage: diskStorage({
-        destination: process.env.UPLOAD_DIR || 'uploads',
-        filename: (_request, file, callback) => {
-          const safeExtension = extname(file.originalname).toLowerCase();
-          callback(null, `${crypto.randomUUID()}${safeExtension}`);
-        },
-      }),
+      storage: uploadStorage,
       fileFilter: (_request, file, callback) => {
         if (!/^(image|application\/pdf)/.test(file.mimetype)) {
           return callback(
@@ -70,8 +80,8 @@ export class UploadsController {
   }
 
   @Get()
-  findAll() {
-    return this.service.findAll();
+  findAll(@Query() query: PaginationQueryDto) {
+    return this.service.findAll(query);
   }
 
   @Get(':id')

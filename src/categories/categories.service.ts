@@ -5,6 +5,11 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
+import {
+  paginate,
+  PaginatedResponse,
+} from '../common/utils/pagination.util';
 import { slugify } from '../common/utils/slug.util';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
@@ -25,8 +30,13 @@ export class CategoriesService {
     return this.categories.save(this.categories.create({ ...dto, slug }));
   }
 
-  findAll(): Promise<Category[]> {
-    return this.categories.find({ order: { createdAt: 'DESC' } });
+  findAll(query: PaginationQueryDto): Promise<PaginatedResponse<Category>> {
+    return paginate(
+      this.categories,
+      query,
+      { order: { createdAt: 'DESC' } },
+      'Categories retrieved successfully',
+    );
   }
 
   async findOne(id: string): Promise<Category> {

@@ -6,6 +6,11 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CategoriesService } from '../categories/categories.service';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
+import {
+  paginate,
+  PaginatedResponse,
+} from '../common/utils/pagination.util';
 import { slugify } from '../common/utils/slug.util';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
@@ -32,11 +37,16 @@ export class ProductsService {
     return this.products.save(product);
   }
 
-  findAll(): Promise<Product[]> {
-    return this.products.find({
-      relations: { category: true },
-      order: { createdAt: 'DESC' },
-    });
+  findAll(query: PaginationQueryDto): Promise<PaginatedResponse<Product>> {
+    return paginate(
+      this.products,
+      query,
+      {
+        relations: { category: true },
+        order: { createdAt: 'DESC' },
+      },
+      'Products retrieved successfully',
+    );
   }
 
   async findOne(id: string): Promise<Product> {

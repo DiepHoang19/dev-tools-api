@@ -23,6 +23,16 @@ export class User extends BaseEntity {
   @Column({ type: 'enum', enum: UserRole, default: UserRole.USER })
   role: UserRole;
 
+  @Exclude()
+  @Column({
+    name: 'refresh_token_hash',
+    type: 'varchar',
+    length: 64,
+    nullable: true,
+    select: false,
+  })
+  refreshTokenHash: string | null;
+
   @OneToMany(() => Blog, (blog) => blog.author)
   blogs: Blog[];
 }

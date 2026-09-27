@@ -2,6 +2,11 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { unlink } from 'node:fs/promises';
 import { Repository } from 'typeorm';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
+import {
+  paginate,
+  PaginatedResponse,
+} from '../common/utils/pagination.util';
 import { UpdateUploadDto } from './dto/update-upload.dto';
 import { Upload } from './entities/upload.entity';
 
@@ -24,8 +29,13 @@ export class UploadsService {
     );
   }
 
-  findAll(): Promise<Upload[]> {
-    return this.uploads.find({ order: { createdAt: 'DESC' } });
+  findAll(query: PaginationQueryDto): Promise<PaginatedResponse<Upload>> {
+    return paginate(
+      this.uploads,
+      query,
+      { order: { createdAt: 'DESC' } },
+      'Uploads retrieved successfully',
+    );
   }
 
   async findOne(id: string): Promise<Upload> {

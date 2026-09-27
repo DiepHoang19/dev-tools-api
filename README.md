@@ -5,6 +5,7 @@ REST API built with NestJS, TypeORM, PostgreSQL (Neon), JWT, dotenv and Swagger.
 ## Features
 
 - JWT authentication: register, login and current user
+- Refresh-token rotation and server-side logout revocation
 - CRUD: users, categories, products, blogs and uploads
 - Password hashing with bcrypt
 - DTO validation and UUID route validation
@@ -26,6 +27,46 @@ npm run start:dev
 
 Register at `POST /api/auth/register`, copy `accessToken`, then use Swagger's
 **Authorize** button to call protected endpoints.
+
+Authentication endpoints:
+
+- `POST /api/auth/register`: create an account and return access/refresh tokens.
+- `POST /api/auth/login`: return access/refresh tokens.
+- `GET /api/auth/me`: return the current account from the database.
+- `POST /api/auth/refresh`: rotate a valid refresh token.
+- `POST /api/auth/logout`: revoke refresh access for the current account.
+
+Refresh tokens are hashed before being stored. Run
+`scripts/add-refresh-token-column.sql` against an existing production database
+before deploying this version. New development databases using
+`DB_SYNCHRONIZE=true` create the column automatically.
+
+## Pagination
+
+All list endpoints support `page` and `limit` query parameters. Defaults are
+`page=1` and `limit=10`; the maximum limit is 100.
+
+```text
+GET /api/products?page=1&limit=10
+```
+
+List responses use the same envelope:
+
+```json
+{
+  "data": [],
+  "pagination": {
+    "page": 1,
+    "limit": 10,
+    "total": 0,
+    "totalPages": 0,
+    "hasNextPage": false,
+    "hasPreviousPage": false
+  },
+  "statusCode": 200,
+  "message": "Products retrieved successfully"
+}
+```
 
 ## Environment
 
@@ -52,6 +93,7 @@ The deployment configuration is in `vercel.json`.
    - `DATABASE_URL`: use the pooled PostgreSQL connection string when the
      provider offers one (for example, Neon pooled connection).
    - `JWT_SECRET`: a long random secret.
+   - `JWT_REFRESH_SECRET`: a different long random secret.
    - `DB_SYNCHRONIZE=false`
    - `JWT_EXPIRES_IN=1d` (optional)
 

@@ -1,9 +1,18 @@
-import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CreateUserDto } from '../users/dto/create-user.dto';
 import { AuthService } from './auth.service';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { LoginDto } from './dto/login.dto';
+import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { JwtPayload } from './strategies/jwt.strategy';
 
@@ -13,13 +22,14 @@ export class AuthController {
   constructor(private readonly service: AuthService) {}
 
   @Post('register')
-  @ApiOperation({ summary: 'Register and receive an access token' })
+  @ApiOperation({ summary: 'Register and receive access/refresh tokens' })
   register(@Body() dto: CreateUserDto) {
     return this.service.register(dto);
   }
 
   @Post('login')
-  @ApiOperation({ summary: 'Login and receive an access token' })
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Login and receive access/refresh tokens' })
   login(@Body() dto: LoginDto) {
     return this.service.login(dto);
   }
@@ -27,8 +37,24 @@ export class AuthController {
   @Get('me')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get current token payload' })
+  @ApiOperation({ summary: 'Get current account information' })
   me(@CurrentUser() user: JwtPayload) {
-    return user;
+    return this.service.me(user.sub);
+  }
+
+  @Post('refresh')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Rotate refresh token and receive new tokens' })
+  refresh(@Body() dto: RefreshTokenDto) {
+    return this.service.refresh(dto.refreshToken);
+  }
+
+  @Post('logout')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Revoke the current account refresh token' })
+  logout(@CurrentUser() user: JwtPayload) {
+    return this.service.logout(user.sub);
   }
 }

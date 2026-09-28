@@ -29,7 +29,11 @@ export class AuthService {
 
   async register(dto: CreateUserDto) {
     const user = this.userRepository.create(dto);
-    await this.userRepository.save(user);
+    const salt = await bcrypt.genSalt();
+    await this.userRepository.save({
+      ...user,
+      password: await bcrypt.hash(dto.password, salt),
+    });
     return this.issueTokens(user);
   }
 

@@ -3,7 +3,6 @@ import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import { join } from 'node:path';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
@@ -11,7 +10,10 @@ async function bootstrap() {
   const config = app.get(ConfigService);
 
   app.setGlobalPrefix('api');
-  app.enableCors();
+  app.enableCors({
+    origin: 'https://www.pnkx-icon.io.vn',
+    credentials: true,
+  });
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -20,18 +22,8 @@ async function bootstrap() {
     }),
   );
 
-  if (!process.env.VERCEL) {
-    const uploadDir = config.get<string>('UPLOAD_DIR', 'uploads');
-    app.useStaticAssets(join(process.cwd(), uploadDir), {
-      prefix: '/uploads/',
-    });
-  }
-
   const swaggerConfig = new DocumentBuilder()
-    .setTitle('NestJS CRUD API')
-    .setDescription(
-      'JWT REST API for users, products, categories, blogs and uploads',
-    )
+    .setTitle('Dev tools API')
     .setVersion('1.0')
     .addBearerAuth()
     .build();

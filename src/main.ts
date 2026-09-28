@@ -11,7 +11,7 @@ async function bootstrap() {
 
   app.setGlobalPrefix('api');
   app.enableCors({
-    origin: 'https://www.pnkx-icon.io.vn',
+    origin: 'http://10.1.15.83',
     credentials: true,
   });
   app.useGlobalPipes(

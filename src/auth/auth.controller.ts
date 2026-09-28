@@ -1,7 +1,6 @@
 import {
   Body,
   Controller,
-  Get,
   HttpCode,
   HttpStatus,
   Post,
@@ -32,14 +31,6 @@ export class AuthController {
   @ApiOperation({ summary: 'Login and receive access/refresh tokens' })
   login(@Body() dto: LoginDto) {
     return this.service.login(dto);
-  }
-
-  @Get('me')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get current account information' })
-  me(@CurrentUser() user: JwtPayload) {
-    return this.service.me(user.sub);
   }
 
   @Post('refresh')

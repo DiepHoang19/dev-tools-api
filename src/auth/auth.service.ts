@@ -9,7 +9,6 @@ import * as bcrypt from 'bcrypt';
 import { createHash, timingSafeEqual } from 'node:crypto';
 import { CreateUserDto } from '../users/dto/create-user.dto';
 import { User } from '../users/entities/user.entity';
-import { UsersService } from '../users/users.service';
 import { LoginDto } from './dto/login.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -22,7 +21,6 @@ interface RefreshTokenPayload {
 @Injectable()
 export class AuthService {
   constructor(
-    private readonly users: UsersService,
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
     @InjectRepository(User)
@@ -30,8 +28,20 @@ export class AuthService {
   ) {}
 
   async register(dto: CreateUserDto) {
-    const user = await this.users.create(dto);
+    const user = this.userRepository.create(dto);
+    await this.userRepository.save(user);
     return this.issueTokens(user);
+  }
+
+  async clearRefreshToken(id: string): Promise<void> {
+    await this.userRepository.update(id, { refresh_token: null });
+  }
+
+  async setRefreshTokenHash(id: string, hash: string): Promise<void> {
+    const result = await this.userRepository.update(id, {
+      refresh_token: hash,
+    });
+    if (!result.affected) throw new NotFoundException('User not found');
   }
 
   async login(dto: LoginDto) {
@@ -56,7 +66,14 @@ export class AuthService {
   }
 
   async logout(userId: string): Promise<void> {
-    await this.users.clearRefreshToken(userId);
+    await this.clearRefreshToken(userId);
+  }
+
+  findByIdWithRefreshToken(id: string): Promise<User | null> {
+    return this.userRepository.findOne({
+      where: { id },
+      select: ['id', 'user_name', 'refresh_token', 'created_at', 'updated_at'],
+    });
   }
 
   private async getRefreshTokenUser(refreshToken: string): Promise<User> {
@@ -72,7 +89,7 @@ export class AuthService {
         throw new UnauthorizedException('Invalid refresh token');
       }
 
-      const user = await this.users.findByIdWithRefreshToken(payload.sub);
+      const user = await this.findByIdWithRefreshToken(payload.sub);
       if (
         !user?.refresh_token ||
         !this.matchesRefreshToken(refreshToken, user.refresh_token)
@@ -104,7 +121,7 @@ export class AuthService {
       },
     );
 
-    await this.users.setRefreshTokenHash(
+    await this.setRefreshTokenHash(
       user.id,
       this.hashRefreshToken(refreshToken),
     );

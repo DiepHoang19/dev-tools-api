@@ -1,9 +1,7 @@
 {
-  "name": "nestjs-typeorm-api",
+  "name": "dev-tools-api",
   "version": "1.0.0",
   "private": true,
-  "description": "NestJS REST API with TypeORM, PostgreSQL, JWT auth and Swagger",
-  "license": "UNLICENSED",
   "scripts": {
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",

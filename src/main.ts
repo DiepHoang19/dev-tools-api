@@ -3,7 +3,9 @@ import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { Application, Request, Response } from 'express';
 import { AppModule } from './app.module';
+import { buildSwaggerUiHtml } from './common/swagger/swagger-ui';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
@@ -26,7 +28,12 @@ async function bootstrap() {
     .build();
   const document = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup('docs', app, document, {
-    swaggerOptions: { persistAuthorization: true },
+    ui: false,
+  });
+
+  const expressApp = app.getHttpAdapter().getInstance() as Application;
+  expressApp.get('/docs', (_request: Request, response: Response) => {
+    response.type('text/html').send(buildSwaggerUiHtml('/docs-json'));
   });
 
   const port = config.get<number>('PORT', 3000);

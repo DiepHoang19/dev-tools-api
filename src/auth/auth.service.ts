@@ -1,4 +1,8 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService, JwtSignOptions } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
@@ -7,6 +11,8 @@ import { CreateUserDto } from '../users/dto/create-user.dto';
 import { User } from '../users/entities/user.entity';
 import { UsersService } from '../users/users.service';
 import { LoginDto } from './dto/login.dto';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 
 interface RefreshTokenPayload {
   sub: string;
@@ -19,6 +25,8 @@ export class AuthService {
     private readonly users: UsersService,
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
   ) {}
 
   async register(dto: CreateUserDto) {
@@ -27,21 +35,23 @@ export class AuthService {
   }
 
   async login(dto: LoginDto) {
-    const user = await this.users.findByEmailWithPassword(dto.email);
-    if (!user || !(await bcrypt.compare(dto.password, user.password))) {
-      throw new UnauthorizedException('Invalid email or password');
+    const user = await this.userRepository.findOneBy({
+      user_name: dto.user_name,
+    });
+    if (!user) {
+      throw new NotFoundException('Tải khoản không tồn tại');
+    }
+    const isValidPassword = await bcrypt.compare(dto.password, user.password);
+    if (!isValidPassword) {
+      throw new UnauthorizedException('Thông tin tài khoản không chính xác');
     }
     delete (user as Partial<User>).password;
     return this.issueTokens(user);
   }
 
-  me(userId: string): Promise<User> {
-    return this.users.findOne(userId);
-  }
-
   async refresh(refreshToken: string) {
     const user = await this.getRefreshTokenUser(refreshToken);
-    delete (user as Partial<User>).refreshTokenHash;
+    delete (user as Partial<User>).refresh_token;
     return this.issueTokens(user);
   }
 
@@ -64,8 +74,8 @@ export class AuthService {
 
       const user = await this.users.findByIdWithRefreshToken(payload.sub);
       if (
-        !user?.refreshTokenHash ||
-        !this.matchesRefreshToken(refreshToken, user.refreshTokenHash)
+        !user?.refresh_token ||
+        !this.matchesRefreshToken(refreshToken, user.refresh_token)
       ) {
         throw new UnauthorizedException('Invalid refresh token');
       }
@@ -80,8 +90,7 @@ export class AuthService {
   private async issueTokens(user: User) {
     const accessToken = await this.jwt.signAsync({
       sub: user.id,
-      email: user.email,
-      role: user.role,
+      user_name: user.user_name,
       type: 'access',
     });
     const refreshToken = await this.jwt.signAsync(
@@ -101,8 +110,8 @@ export class AuthService {
     );
 
     return {
-      accessToken,
-      refreshToken,
+      access_token: accessToken,
+      refresh_token: refreshToken,
       tokenType: 'Bearer',
       user,
     };

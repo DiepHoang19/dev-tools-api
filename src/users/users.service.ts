@@ -6,11 +6,6 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
 import { Repository } from 'typeorm';
-import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
-import {
-  paginate,
-  PaginatedResponse,
-} from '../common/utils/pagination.util';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { User } from './entities/user.entity';
@@ -36,34 +31,10 @@ export class UsersService {
     return saved;
   }
 
-  findAll(query: PaginationQueryDto): Promise<PaginatedResponse<User>> {
-    return paginate(
-      this.users,
-      query,
-      { order: { createdAt: 'DESC' } },
-      'Users retrieved successfully',
-    );
-  }
-
   async findOne(id: string): Promise<User> {
     const user = await this.users.findOne({ where: { id } });
     if (!user) throw new NotFoundException('User not found');
     return user;
-  }
-
-  findByEmailWithPassword(email: string): Promise<User | null> {
-    return this.users.findOne({
-      where: { email: email.toLowerCase().trim() },
-      select: [
-        'id',
-        'name',
-        'email',
-        'password',
-        'role',
-        'createdAt',
-        'updatedAt',
-      ],
-    });
   }
 
   findByIdWithRefreshToken(id: string): Promise<User | null> {

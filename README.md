@@ -4,13 +4,12 @@ REST API built with NestJS, TypeORM, PostgreSQL (Neon), JWT, dotenv and Swagger.
 
 ## Features
 
-- JWT authentication: register, login and current user
+- JWT authentication: register, login, refresh and logout
 - Refresh-token rotation and server-side logout revocation
-- CRUD: users, categories, products, blogs and uploads
+- CRUD: users, categories and products
 - Password hashing with bcrypt
 - DTO validation and UUID route validation
-- Product/category and blog/category/author relations
-- Local file upload for images/PDF (max 5 MB)
+- Product/category relation
 - Swagger UI with persistent Bearer authorization
 
 ## Run locally
@@ -25,14 +24,13 @@ npm run start:dev
 - Health: `http://localhost:3000/api/health`
 - Swagger: `http://localhost:3000/docs`
 
-Register at `POST /api/auth/register`, copy `accessToken`, then use Swagger's
+Register at `POST /api/auth/register`, copy `access_token`, then use Swagger's
 **Authorize** button to call protected endpoints.
 
 Authentication endpoints:
 
 - `POST /api/auth/register`: create an account and return access/refresh tokens.
 - `POST /api/auth/login`: return access/refresh tokens.
-- `GET /api/auth/me`: return the current account from the database.
 - `POST /api/auth/refresh`: rotate a valid refresh token.
 - `POST /api/auth/logout`: revoke refresh access for the current account.
 
@@ -74,10 +72,17 @@ See `.env.example`. `DB_SYNCHRONIZE=true` is convenient for local development.
 Set it to `false` and use TypeORM migrations in production. Change `JWT_SECRET`
 before deploying.
 
-Uploaded files are stored in `uploads/` and served from `/uploads/<filename>`.
+## Example data
 
-Database tables use the `api_` prefix so they do not collide with existing
-tables in a shared database.
+With `DATABASE_URL` configured and the schema created, run:
+
+```bash
+npm run seed
+```
+
+The command is idempotent and creates one example account (`admin` /
+`Admin123!`), three categories and three products. Change the example password
+before using this account outside local development.
 
 ## Deploy to Vercel
 
@@ -98,8 +103,3 @@ The deployment configuration is in `vercel.json`.
    - `JWT_EXPIRES_IN=1d` (optional)
 
 5. Deploy, then verify `/api/health` and `/docs` on the generated domain.
-
-The local-disk upload module is intentionally disabled when `VERCEL=1` because
-files written by a Vercel Function are not persistent. Other API modules remain
-available. Migrate uploads to Vercel Blob or another object store before
-enabling upload routes on Vercel.

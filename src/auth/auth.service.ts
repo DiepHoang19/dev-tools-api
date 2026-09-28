@@ -7,11 +7,10 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService, JwtSignOptions } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { createHash, timingSafeEqual } from 'node:crypto';
-import { CreateUserDto } from '../users/dto/create-user.dto';
 import { User } from '../users/entities/user.entity';
+import { CreateUserDto } from '../users/dto/create-user.dto';
+import { UsersService } from '../users/users.service';
 import { LoginDto } from './dto/login.dto';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 
 interface RefreshTokenPayload {
   sub: string;
@@ -23,49 +22,38 @@ export class AuthService {
   constructor(
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
-    @InjectRepository(User)
-    private readonly userRepository: Repository<User>,
+    private readonly usersService: UsersService,
   ) {}
 
   async register(dto: CreateUserDto) {
-    const user = this.userRepository.create(dto);
-    const salt = await bcrypt.genSalt();
-    await this.userRepository.save({
-      ...user,
-      password: await bcrypt.hash(dto.password, salt),
-    });
+    const user = await this.usersService.create(dto);
     return this.issueTokens(user);
   }
 
   async clearRefreshToken(id: string): Promise<void> {
-    await this.userRepository.update(id, { refresh_token: null });
+    await this.usersService.clearRefreshToken(id);
   }
 
   async setRefreshTokenHash(id: string, hash: string): Promise<void> {
-    const result = await this.userRepository.update(id, {
-      refresh_token: hash,
-    });
-    if (!result.affected) throw new NotFoundException('User not found');
+    await this.usersService.setRefreshTokenHash(id, hash);
   }
 
   async login(dto: LoginDto) {
-    const user = await this.userRepository.findOneBy({
-      user_name: dto.user_name,
-    });
+    const user = await this.usersService.findByUserNameWithPassword(
+      dto.user_name,
+    );
     if (!user) {
-      throw new NotFoundException('Tải khoản không tồn tại');
+      throw new NotFoundException('Tài khoản không tồn tại');
     }
     const isValidPassword = await bcrypt.compare(dto.password, user.password);
     if (!isValidPassword) {
       throw new UnauthorizedException('Thông tin tài khoản không chính xác');
     }
-    delete (user as Partial<User>).password;
     return this.issueTokens(user);
   }
 
   async refresh(refreshToken: string) {
     const user = await this.getRefreshTokenUser(refreshToken);
-    delete (user as Partial<User>).refresh_token;
     return this.issueTokens(user);
   }
 
@@ -74,10 +62,7 @@ export class AuthService {
   }
 
   findByIdWithRefreshToken(id: string): Promise<User | null> {
-    return this.userRepository.findOne({
-      where: { id },
-      select: ['id', 'user_name', 'refresh_token', 'created_at', 'updated_at'],
-    });
+    return this.usersService.findByIdWithRefreshToken(id);
   }
 
   private async getRefreshTokenUser(refreshToken: string): Promise<User> {
@@ -134,8 +119,15 @@ export class AuthService {
       access_token: accessToken,
       refresh_token: refreshToken,
       tokenType: 'Bearer',
-      user,
+      user: this.toPublicUser(user),
     };
+  }
+
+  private toPublicUser(user: User): Omit<User, 'password' | 'refresh_token'> {
+    const safeUser = { ...user } as Partial<User>;
+    delete safeUser.password;
+    delete safeUser.refresh_token;
+    return safeUser as Omit<User, 'password' | 'refresh_token'>;
   }
 
   private hashRefreshToken(refreshToken: string): string {

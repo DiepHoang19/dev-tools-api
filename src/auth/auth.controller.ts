@@ -14,6 +14,7 @@ import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { JwtPayload } from './strategies/jwt.strategy';
+import { ResponseMessage } from '../common/decorators/response-message.decorator';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -22,6 +23,7 @@ export class AuthController {
 
   @Post('register')
   @ApiOperation({ summary: 'Register and receive access/refresh tokens' })
+  @ResponseMessage('Account registered successfully')
   register(@Body() dto: CreateUserDto) {
     return this.service.register(dto);
   }
@@ -29,6 +31,7 @@ export class AuthController {
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Login and receive access/refresh tokens' })
+  @ResponseMessage('Login successful')
   login(@Body() dto: LoginDto) {
     return this.service.login(dto);
   }
@@ -36,6 +39,7 @@ export class AuthController {
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Rotate refresh token and receive new tokens' })
+  @ResponseMessage('Token refreshed successfully')
   refresh(@Body() dto: RefreshTokenDto) {
     return this.service.refresh(dto.refreshToken);
   }
@@ -43,8 +47,9 @@ export class AuthController {
   @Post('logout')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @HttpCode(HttpStatus.NO_CONTENT)
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Revoke the current account refresh token' })
+  @ResponseMessage('Logout successful')
   logout(@CurrentUser() user: JwtPayload) {
     return this.service.logout(user.sub);
   }
